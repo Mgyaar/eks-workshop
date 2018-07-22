@@ -6,6 +6,11 @@ resource "aws_eks_cluster" "kubernetes" {
     security_group_ids = ["${aws_security_group.kubernetes.id}"]
     subnet_ids         = ["${aws_subnet.public-subnet.*.id}"]
   }
+
+  depends_on = [
+    "aws_iam_role_policy_attachment.kubernetes_cluster_policy",
+    "aws_iam_role_policy_attachment.kubernetes_service_policy",
+  ]
 }
 
 resource "aws_iam_role" "kubernetes_role" {
@@ -42,23 +47,29 @@ resource "aws_key_pair" "sshkey" {
   public_key = "${lookup(var.sshkey, terraform.workspace)}"
 }
 
-resource "aws_cloudformation_stack" "eks_worker_nodes" {
-  name = "${aws_eks_cluster.kubernetes.name}Workers"
+resource "aws_security_group" "kubernetes" {
+  name        = "${lookup(var.name, terraform.workspace)}-kubernetes"
+  description = "Allow Kubernetes Access"
+  vpc_id      = "${aws_vpc.kubernetes.id}"
+}
 
-  template_url = "https://amazon-eks.s3-us-west-2.amazonaws.com/1.10.3/2018-06-05/amazon-eks-nodegroup.yaml"
+resource "aws_security_group_rule" "kunernetes_outbound_all" {
+  type        = "egress"
+  from_port   = 0
+  to_port     = 0
+  protocol    = "-1"
+  cidr_blocks = ["0.0.0.0/0"]
 
-  parameters {
-    ClusterName                      = "${aws_eks_cluster.kubernetes.name}"
-    ClusterControlPlaneSecurityGroup = "${aws_security_group.kubernetes.id}"
-    NodeGroupName                    = "${aws_eks_cluster.kubernetes.name}-workers"
-    NodeAutoScalingGroupMinSize      = 1
-    NodeAutoScalingGroupMaxSize      = 1
-    NodeInstanceType                 = "m5.large"
-    NodeImageId                      = "ami-dea4d5a1"
-    Subnets                          = "${aws_subnet.public-subnet.0.id}"
-    VpcId                            = "${aws_vpc.kubernetes.id}"
-    KeyName                          = "${aws_key_pair.sshkey.key_name}"
-  }
+  security_group_id = "${aws_security_group.kubernetes.id}"
+}
 
-  capabilities = ["CAPABILITY_IAM"]
+resource "aws_security_group_rule" "kunernetes_inbound_https" {
+  type        = "ingress"
+  description = "Allow workstation to communicate with the cluster API Server"
+  from_port   = 443
+  to_port     = 443
+  protocol    = "tcp"
+  cidr_blocks = ["0.0.0.0/0"]
+
+  security_group_id = "${aws_security_group.kubernetes.id}"
 }

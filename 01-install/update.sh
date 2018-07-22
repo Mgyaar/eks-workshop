@@ -4,12 +4,10 @@ set -e
 
 # Step 1: Set the different environment variables
 
-export AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-"us-east-1"}
+export AWS_DEFAULT_REGION=$(terraform output region)
 export CLUSTER=${CLUSTER:-princess}
-ROLE=$(terraform state show \
-       aws_cloudformation_stack.eks_worker_nodes | \
-       grep -i "outputs.NodeInstanceRole" | \
-       awk '{print $3}')
+ROLE=$(terraform state show aws_iam_role.worker-node | \
+         grep "^arn"| awk '{print $3}')
 export ROLE
 
 # Step 2 - Deploy the aws-auth-cm so that the workers can join

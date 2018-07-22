@@ -1,0 +1,87 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: alb-controller
+  namespace: kube-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: alb-controller
+rules:
+- apiGroups: ["", "extensions", "rbac.authorization.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: alb-controller-binding
+subjects:
+- kind: User
+  name: "system:serviceaccount:kube-system:alb-controller"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: alb-controller
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: alb-ingress-controller
+  name: alb-ingress-controller
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alb-ingress-controller
+  strategy:
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+    type: RollingUpdate
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: alb-ingress-controller
+    spec:
+      containers:
+      - args:
+        - /server
+        - --default-backend-service=kube-system/default-http-backend
+        - --ingress-class=alb
+        env:
+        - name: AWS_REGION
+          value: us-east-1
+        - name: CLUSTER_NAME
+          value: princess
+        - name: AWS_DEBUG
+          value: "true"
+        - name: AWS_MAX_RETRIES
+          value: "20"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: metadata.namespace
+        image: quay.io/coreos/alb-ingress-controller:1.0-beta.4
+        imagePullPolicy: Always
+        name: server
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      serviceAccountName: alb-controller
+      serviceAccount: alb-controller

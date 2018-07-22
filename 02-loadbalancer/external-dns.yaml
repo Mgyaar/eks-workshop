@@ -1,0 +1,59 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: external-dns
+  namespace: kube-system
+---
+kind: ClusterRole
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: external-dns
+rules:
+- apiGroups: ["", "extensions", "rbac.authorization.k8s.io"]
+  resources: ["*"]
+  verbs: ["*"]
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1beta1
+metadata:
+  name: external-dns-binding
+subjects:
+- kind: User
+  name: "system:serviceaccount:kube-system:external-dns"
+  apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: ClusterRole
+  name: external-dns
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: external-dns
+  namespace: kube-system
+spec:
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: external-dns
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      containers:
+      - name: external-dns
+        image: registry.opensource.zalan.do/teapot/external-dns:v0.5.4
+        args:
+        - --source=service
+        - --source=ingress
+        - --domain-filter=${K8S_DOMAIN}
+        - --provider=aws
+        - --policy=upsert-only
+        - --registry=txt
+        - --txt-owner-id=${K8S_CLUSTER}
+      serviceAccount: external-dns
+      securityContext: {}
+...
