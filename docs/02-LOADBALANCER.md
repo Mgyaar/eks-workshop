@@ -24,3 +24,6 @@ This stack does the associated installation; it requires:
 
 > Note: `deploy-script.sh` requires `envsubst` to be installed to work as
   expected
+
+To proceed with the deletion of the Ingress which deletes the ALB, run
+`undeploy-script.sh`. Verify, the ALB is deleted by the controller.

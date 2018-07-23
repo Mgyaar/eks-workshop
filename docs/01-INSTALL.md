@@ -18,3 +18,9 @@ token to connect to the console and displays the associated URL.
   [Getting Started with AWS EKS](https://www.terraform.io/docs/providers/aws/guides/eks-getting-started.html). 
   The main difference is that the kubernetes workers are 
   remain in a private set of subnets.
+
+To delete the EKS cluster, simply run:
+
+```shell
+terraform destroy
+```
