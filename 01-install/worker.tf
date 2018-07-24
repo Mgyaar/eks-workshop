@@ -49,6 +49,13 @@ resource "aws_security_group" "worker-node" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 
+  egress {
+    from_port        = 0
+    to_port          = 0
+    protocol         = "-1"
+    ipv6_cidr_blocks = ["::/0"]
+  }
+
   tags = "${
     map(
      "Name", "eks-${aws_eks_cluster.kubernetes.name}-node",
@@ -58,23 +65,23 @@ resource "aws_security_group" "worker-node" {
 }
 
 resource "aws_security_group_rule" "worker-node-ingress" {
-  description              = "Allow node to communicate with each other"
-  from_port                = 0
-  protocol                 = "-1"
-  to_port                  = 65535
-  type                     = "ingress"
-  security_group_id        = "${aws_security_group.worker-node.id}"
-  source_security_group_id = "${aws_security_group.worker-node.id}"
+  description       = "Allow node to communicate with each other"
+  from_port         = 0
+  protocol          = "-1"
+  to_port           = 0
+  type              = "ingress"
+  security_group_id = "${aws_security_group.worker-node.id}"
+  cidr_blocks       = ["0.0.0.0/0"]
 }
 
-resource "aws_security_group_rule" "worker-node-ingress-cluster" {
-  description              = "Allow worker Kubelets and pods to receive communication from the cluster control plane"
-  from_port                = 1025
-  protocol                 = "tcp"
-  security_group_id        = "${aws_security_group.worker-node.id}"
-  source_security_group_id = "${aws_security_group.kubernetes.id}"
-  to_port                  = 65535
-  type                     = "ingress"
+resource "aws_security_group_rule" "worker-node-ingress-v6" {
+  description       = "Allow node to communicate with each other"
+  from_port         = 0
+  protocol          = "-1"
+  to_port           = 0
+  type              = "ingress"
+  security_group_id = "${aws_security_group.worker-node.id}"
+  ipv6_cidr_blocks  = ["::/0"]
 }
 
 resource "aws_security_group_rule" "demo-cluster-ingress-node-https" {
@@ -85,15 +92,6 @@ resource "aws_security_group_rule" "demo-cluster-ingress-node-https" {
   source_security_group_id = "${aws_security_group.worker-node.id}"
   to_port                  = 443
   type                     = "ingress"
-}
-
-resource "aws_security_group_rule" "demo-cluster-ingress-node-ssh" {
-  from_port         = 22
-  protocol          = "tcp"
-  security_group_id = "${aws_security_group.worker-node.id}"
-  cidr_blocks       = ["0.0.0.0/0"]
-  to_port           = 22
-  type              = "ingress"
 }
 
 resource "aws_security_group_rule" "cluster-node-egress" {

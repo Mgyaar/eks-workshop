@@ -49,3 +49,14 @@ resource "aws_security_group_rule" "bastion-ssh-ingress" {
   security_group_id = "${aws_security_group.bastion.id}"
   cidr_blocks       = ["0.0.0.0/0"]
 }
+
+resource "aws_security_group_rule" "bastion-all-ingress" {
+  description       = "Allow any internal access"
+  from_port         = 0
+  protocol          = "-1"
+  to_port           = 0
+  type              = "ingress"
+  security_group_id = "${aws_security_group.bastion.id}"
+  cidr_blocks       = ["10.4.0.0/16"]
+}
+
